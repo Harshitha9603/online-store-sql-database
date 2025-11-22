@@ -93,3 +93,144 @@ INSERT INTO order_items (order_id, product_id, quantity, price) VALUES
 
 INSERT INTO payments (order_id, amount, payment_method) VALUES
 (1, 1500, 'Credit Card');
+
+SELECT c.full_name, SUM(p.amount) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN payments p ON o.order_id = p.order_id
+GROUP BY c.customer_id;
+
+SELECT p.product_name, SUM(oi.quantity) AS total_sold
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_id
+ORDER BY total_sold DESC;
+
+SELECT product_name, stock 
+FROM products 
+WHERE stock < 10;
+
+SELECT SUM(amount) AS total_revenue 
+FROM payments;
+SELECT c.full_name, o.order_id, o.order_date, o.status
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+ORDER BY o.order_date DESC;
+SELECT o.order_id, p.product_name, oi.quantity, oi.price
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN orders o ON oi.order_id = o.order_id;
+SELECT status, COUNT(*) AS total_orders
+FROM orders
+GROUP BY status;
+SELECT p.product_name, l.change_amount, l.action, l.log_date
+FROM inventory_logs l
+JOIN products p ON l.product_id = p.product_id;
+SELECT *
+FROM customers
+WHERE customer_id NOT IN (SELECT customer_id FROM orders);
+SELECT c.customer_id, c.full_name, SUM(p.amount) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN payments p ON o.order_id = p.order_id
+GROUP BY c.customer_id
+ORDER BY total_spent DESC
+LIMIT 3;
+SELECT o.order_id, SUM(oi.price * oi.quantity) AS order_total
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+GROUP BY o.order_id
+ORDER BY order_total DESC;
+SELECT AVG(t.order_total) AS avg_order_value
+FROM (
+    SELECT o.order_id, SUM(oi.price * oi.quantity) AS order_total
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    GROUP BY o.order_id
+) t;
+SELECT c.category_name, COUNT(p.product_id) AS product_count
+FROM categories c
+LEFT JOIN products p ON c.category_id = p.category_id
+GROUP BY c.category_id;
+SELECT order_id, SUM(quantity) AS total_products
+FROM order_items
+GROUP BY order_id
+HAVING total_products > 2;
+DELIMITER $$
+
+CREATE TRIGGER trg_reduce_stock
+AFTER INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    UPDATE products
+    SET stock = stock - NEW.quantity
+    WHERE product_id = NEW.product_id;
+
+    INSERT INTO inventory_logs(product_id, change_amount, action)
+    VALUES (NEW.product_id, -NEW.quantity, 'Order');
+END $$
+
+DELIMITER ;
+DELIMITER $$
+
+CREATE PROCEDURE place_order(
+    IN p_customer INT,
+    IN p_product INT,
+    IN p_qty INT
+)
+BEGIN
+    DECLARE new_order_id INT;
+    
+    -- Create order
+    INSERT INTO orders(customer_id) VALUES (p_customer);
+    SET new_order_id = LAST_INSERT_ID();
+    
+    -- Add item
+    INSERT INTO order_items(order_id, product_id, quantity, price)
+    SELECT new_order_id, p_product, p_qty, price
+    FROM products
+    WHERE product_id = p_product;
+
+END $$
+
+DELIMITER ;
+
+USE online_store;
+SHOW TABLES;
+
+SELECT * FROM products;
+SELECT * FROM customers;
+SELECT * FROM orders;
+
+SELECT p.product_name, SUM(oi.quantity) AS total_sold
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_id
+ORDER BY total_sold DESC;
+
+SELECT c.full_name, SUM(p.amount) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN payments p ON o.order_id = p.order_id
+GROUP BY c.customer_id;
+
+SELECT order_id, SUM(quantity) AS total_items
+FROM order_items
+GROUP BY order_id;
+
+INSERT INTO order_items (order_id, product_id, quantity, price)
+VALUES (1, 3, 2, 20);
+
+select * from order_items;
+SELECT product_name, stock FROM products WHERE product_id = 3;
+
+
+
+
+
+
+
+
+
+
+
